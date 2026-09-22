@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+# Запуск пайплайна при каждом push в ветку main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # 1. Этап CI (Continuous Integration): Проверка и сборка проекта
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Отримати код з репозиторію
+      uses: actions/checkout@v4
+
+    - name: Встановити Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Встановити залежності
+      run: npm install
+
+    - name: Перевірка синтаксису (CI Check)
+      run: node -c server.js
+
+  # 2. Этап CD (Continuous Deployment): Развертывание на Render
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Виклик деплою на Render
+      run: |
+        curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"

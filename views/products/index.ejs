@@ -90,7 +90,8 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Фото флакону / баночки (Файл)</label>
-              <input type="file" name="image" class="form-control" accept="image/*" required>
+              <!-- Было: <input type="file" name="image"> -->
+            <input type="url" name="image_url" placeholder="https://example.com/photo.jpg" class="form-control">
             </div>
           </div>
           <div class="modal-footer">

@@ -1,21 +1,10 @@
 // routes/productRoutes.js
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const db = require('../db');
 
-// Настройка сохранения загружаемых файлов в папку public/uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/uploads/');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e9) + ext);
-  }
-});
-const upload = multer({ storage });
+// Резервная ссылка на фото, если поле оставят пустым
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60';
 
 // 1. READ ALL: Главная страница со всеми товарами
 router.get('/', async (req, res) => {
@@ -38,16 +27,18 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. CREATE: Добавление нового товара + загрузка фото
-router.post('/products', upload.single('image'), async (req, res) => {
+// 2. CREATE: Добавление нового товара по текстовой ссылке на фото
+router.post('/products', async (req, res) => {
   try {
-    const { title, description, price, volume_ml, category_id } = req.body;
-    const image_url = req.file ? `/uploads/${req.file.filename}` : '/uploads/no-photo.png';
+    const { title, description, price, volume_ml, category_id, image_url } = req.body;
+    
+    // Если ссылку не указали, ставим дефолтное фото
+    const finalImageUrl = (image_url && image_url.trim() !== '') ? image_url.trim() : DEFAULT_IMAGE;
 
     await db.query(
       `INSERT INTO products (title, description, price, volume_ml, image_url, category_id)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [title, description, price, volume_ml, image_url, category_id || null]
+      [title, description, price, volume_ml, finalImageUrl, category_id || null]
     );
 
     res.redirect('/');
@@ -108,23 +99,22 @@ router.get('/products/:id/edit', async (req, res) => {
 });
 
 // 4. UPDATE (сохранение): Обновление данных товара в БД
-router.post('/products/:id/edit', upload.single('image'), async (req, res) => {
+router.post('/products/:id/edit', async (req, res) => {
   try {
-    const { title, description, price, volume_ml, category_id } = req.body;
+    const { title, description, price, volume_ml, category_id, image_url } = req.body;
     
-    let image_url;
-    if (req.file) {
-      image_url = `/uploads/${req.file.filename}`;
-    } else {
+    // Если поле ссылки оставили пустым при редактировании — берем старую ссылку из базы
+    let finalImageUrl = image_url && image_url.trim() !== '' ? image_url.trim() : null;
+    if (!finalImageUrl) {
       const existing = await db.query('SELECT image_url FROM products WHERE id = $1', [req.params.id]);
-      image_url = existing.rows[0] ? existing.rows[0].image_url : '/uploads/no-photo.png';
+      finalImageUrl = existing.rows[0] ? existing.rows[0].image_url : DEFAULT_IMAGE;
     }
 
     await db.query(
       `UPDATE products 
        SET title = $1, description = $2, price = $3, volume_ml = $4, image_url = $5, category_id = $6
        WHERE id = $7`,
-      [title, description, price, volume_ml, image_url, category_id || null, req.params.id]
+      [title, description, price, volume_ml, finalImageUrl, category_id || null, req.params.id]
     );
 
     res.redirect('/');

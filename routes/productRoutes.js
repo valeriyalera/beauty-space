@@ -18,73 +18,131 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // 1. READ ALL: Главная страница со всеми товарами
-router.get('/', (req, res) => {
-  const products = db.prepare(`
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id
-  `).all();
-  const categories = db.prepare('SELECT * FROM categories').all();
-  res.render('products/index', { products, categories });
+router.get('/', async (req, res) => {
+  try {
+    const productsResult = await db.query(`
+      SELECT p.*, c.name as category_name 
+      FROM products p 
+      LEFT JOIN categories c ON p.category_id = c.id
+      ORDER BY p.id DESC
+    `);
+    const categoriesResult = await db.query('SELECT * FROM categories ORDER BY id ASC');
+
+    res.render('products/index', { 
+      products: productsResult.rows, 
+      categories: categoriesResult.rows 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при завантаженні товарів');
+  }
 });
 
-// 2. CREATE: Добавление нового товара + загрузка файла (фото)
-router.post('/products', upload.single('image'), (req, res) => {
-  const { title, description, price, volume_ml, category_id } = req.body;
-  const image_url = req.file ? `/uploads/${req.file.filename}` : '/uploads/no-photo.png';
+// 2. CREATE: Добавление нового товара + загрузка фото
+router.post('/products', upload.single('image'), async (req, res) => {
+  try {
+    const { title, description, price, volume_ml, category_id } = req.body;
+    const image_url = req.file ? `/uploads/${req.file.filename}` : '/uploads/no-photo.png';
 
-  const stmt = db.prepare(`
-    INSERT INTO products (title, description, price, volume_ml, image_url, category_id)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(title, description, price, volume_ml, image_url, category_id);
+    await db.query(
+      `INSERT INTO products (title, description, price, volume_ml, image_url, category_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [title, description, price, volume_ml, image_url, category_id || null]
+    );
 
-  res.redirect('/');
+    res.redirect('/');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при додаванні товару');
+  }
 });
 
 // 3. READ ONE: Просмотр одного товара и его отзывов
-router.get('/products/:id', (req, res) => {
-  const product = db.prepare(`
-    SELECT p.*, c.name as category_name 
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE p.id = ?
-  `).get(req.params.id);
+router.get('/products/:id', async (req, res) => {
+  try {
+    const productResult = await db.query(
+      `SELECT p.*, c.name as category_name 
+       FROM products p 
+       LEFT JOIN categories c ON p.category_id = c.id 
+       WHERE p.id = $1`,
+      [req.params.id]
+    );
 
-  if (!product) return res.status(404).send('Продукт не знайдено');
+    if (productResult.rows.length === 0) {
+      return res.status(404).send('Продукт не знайдено');
+    }
 
-  const reviews = db.prepare('SELECT * FROM reviews WHERE product_id = ?').all(req.params.id);
-  res.render('products/details', { product, reviews });
+    const reviewsResult = await db.query(
+      'SELECT * FROM reviews WHERE product_id = $1 ORDER BY id DESC',
+      [req.params.id]
+    );
+
+    res.render('products/details', { 
+      product: productResult.rows[0], 
+      reviews: reviewsResult.rows 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при відкритті деталей');
+  }
 });
 
 // 4. UPDATE (форма): Страница редактирования
-router.get('/products/:id/edit', (req, res) => {
-  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
-  const categories = db.prepare('SELECT * FROM categories').all();
-  if (!product) return res.status(404).send('Продукт не знайдено');
-  res.render('products/edit', { product, categories });
+router.get('/products/:id/edit', async (req, res) => {
+  try {
+    const productResult = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const categoriesResult = await db.query('SELECT * FROM categories ORDER BY id ASC');
+
+    if (productResult.rows.length === 0) {
+      return res.status(404).send('Продукт не знайдено');
+    }
+
+    res.render('products/edit', { 
+      product: productResult.rows[0], 
+      categories: categoriesResult.rows 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при відкритті редагування');
+  }
 });
 
 // 4. UPDATE (сохранение): Обновление данных товара в БД
-router.post('/products/:id/edit', upload.single('image'), (req, res) => {
-  const { title, description, price, volume_ml, category_id } = req.body;
-  const existing = db.prepare('SELECT image_url FROM products WHERE id = ?').get(req.params.id);
-  const image_url = req.file ? `/uploads/${req.file.filename}` : existing.image_url;
+router.post('/products/:id/edit', upload.single('image'), async (req, res) => {
+  try {
+    const { title, description, price, volume_ml, category_id } = req.body;
+    
+    let image_url;
+    if (req.file) {
+      image_url = `/uploads/${req.file.filename}`;
+    } else {
+      const existing = await db.query('SELECT image_url FROM products WHERE id = $1', [req.params.id]);
+      image_url = existing.rows[0] ? existing.rows[0].image_url : '/uploads/no-photo.png';
+    }
 
-  const stmt = db.prepare(`
-    UPDATE products 
-    SET title = ?, description = ?, price = ?, volume_ml = ?, image_url = ?, category_id = ?
-    WHERE id = ?
-  `);
-  stmt.run(title, description, price, volume_ml, image_url, category_id, req.params.id);
+    await db.query(
+      `UPDATE products 
+       SET title = $1, description = $2, price = $3, volume_ml = $4, image_url = $5, category_id = $6
+       WHERE id = $7`,
+      [title, description, price, volume_ml, image_url, category_id || null, req.params.id]
+    );
 
-  res.redirect('/');
+    res.redirect('/');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при оновленні товару');
+  }
 });
 
 // 5. DELETE: Удаление товара
-router.post('/products/:id/delete', (req, res) => {
-  db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
-  res.redirect('/');
+router.post('/products/:id/delete', async (req, res) => {
+  try {
+    await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
+    res.redirect('/');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при видаленні товару');
+  }
 });
 
 module.exports = router;

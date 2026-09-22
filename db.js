@@ -1,42 +1,74 @@
-// db.js
-const Database = require('better-sqlite3');
-const path = require('path');
+require('dotenv').config();
+const { Pool } = require('pg');
 
-const db = new Database(path.join(__dirname, 'database.sqlite'));
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com'))
+    ? { rejectUnauthorized: false }
+    : false
+});
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL
-  );
+async function initDB() {
+  let client;
+  try {
+    client = await pool.connect();
 
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
-    price REAL NOT NULL,
-    volume_ml INTEGER,
-    image_url TEXT NOT NULL,
-    category_id INTEGER,
-    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
-  );
+    // 1. Таблица категорий
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE
+      );
+    `);
 
-  CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
-    author_name TEXT NOT NULL,
-    comment TEXT,
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
-  );
-`);
+    // 2. Таблица товаров (с твоими названиями: title и volume_ml)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        price NUMERIC(10, 2) NOT NULL,
+        volume_ml VARCHAR(50),
+        image_url VARCHAR(255),
+        category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL
+      );
+    `);
 
-// Заполняем начальными категориями, если таблица пустая
-const count = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
-if (count === 0) {
-  const insert = db.prepare('INSERT INTO categories (name) VALUES (?)');
-  insert.run('Lipsticks'); // Губні помади
-  insert.run('Serums');    // Сироватки
-  insert.run('Creams');    // Креми
+    // 3. Таблица отзывов
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+        author VARCHAR(100) NOT NULL,
+        rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 4. Наполнение базовыми категориями
+    const catCheck = await client.query('SELECT COUNT(*) FROM categories');
+    if (parseInt(catCheck.rows[0].count) === 0) {
+      await client.query(`
+        INSERT INTO categories (name) VALUES 
+        ('Lipsticks'),
+        ('Serums'),
+        ('Creams');
+      `);
+      console.log('Категорії успішно додані в PostgreSQL.');
+    }
+
+    console.log('PostgreSQL успішно підключено та ініціалізовано.');
+  } catch (err) {
+    console.error('Помилка підключення/ініціалізації PostgreSQL:', err);
+  } finally {
+    if (client) client.release();
+  }
 }
 
-module.exports = db;
+initDB();
+
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+  pool
+};

@@ -9,18 +9,80 @@
 <body class="p-4 bg-light">
   <div class="container py-4">
     <a href="/" class="btn btn-outline-dark mb-4">← Назад до каталогу</a>
-    <div class="row bg-white p-4 shadow-sm">
-      <div class="col-md-5 text-center bg-light p-3">
-        <img src="<%= product.image_url %>" class="img-fluid" style="max-height: 400px;" alt="<%= product.title %>">
+
+    <!-- Карточка товара -->
+    <div class="row bg-white p-4 shadow-sm mb-5 rounded">
+      <div class="col-md-5 text-center bg-light p-3 rounded">
+        <img src="<%= product.image_url %>" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;" alt="<%= product.title %>">
       </div>
       <div class="col-md-7 ps-md-5 d-flex flex-column justify-content-center">
-        <span class="badge bg-secondary mb-2 align-self-start"><%= product.category_name %></span>
-        <h1 class="display-6"><%= product.title %></h1>
-        <h3 class="my-3"><%= product.price %> ₴</h3>
+        <span class="badge bg-secondary mb-2 align-self-start"><%= product.category_name || 'Без категорії' %></span>
+        <h1 class="display-6 fw-bold"><%= product.title %></h1>
+        <h3 class="my-3 text-dark"><%= product.price %> ₴</h3>
         <p class="text-muted"><%= product.volume_ml %> мл</p>
         <p class="lead text-secondary"><%= product.description %></p>
       </div>
     </div>
+
+    <!-- Секция отзывов (Сущность Reviews) -->
+    <div class="row bg-white p-4 shadow-sm rounded">
+      <div class="col-12">
+        <h3 class="mb-4">Відгуки клієнтів (<%= reviews.length %>)</h3>
+
+        <!-- Форма добавления отзыва -->
+        <div class="card mb-4 bg-light border-0">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Залишити відгук</h5>
+            <form action="/products/<%= product.id %>/reviews" method="POST">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Ваше ім'я:</label>
+                  <input type="text" name="author" class="form-control" placeholder="Наприклад, Олена" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Оцінка:</label>
+                  <select name="rating" class="form-select" required>
+                    <option value="5">⭐⭐⭐⭐⭐ (5 - Чудово)</option>
+                    <option value="4">⭐⭐⭐⭐ (4 - Добре)</option>
+                    <option value="3">⭐⭐⭐ (3 - Нормально)</option>
+                    <option value="2">⭐⭐ (2 - Погано)</option>
+                    <option value="1">⭐ (1 - Жахливо)</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Коментар:</label>
+                  <textarea name="comment" class="form-control" rows="3" placeholder="Поділіться враженнями про цей продукт..."></textarea>
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="btn btn-dark">Опублікувати відгук</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Список добавленных отзывов -->
+        <% if (reviews.length === 0) { %>
+          <p class="text-muted">Ще немає відгуків про цей товар. Будьте першими!</p>
+        <% } else { %>
+          <div class="list-group">
+            <% reviews.forEach(review => { %>
+              <div class="list-group-item list-group-item-action flex-column align-items-start border-bottom py-3">
+                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                  <h6 class="mb-0 fw-bold"><%= review.author %></h6>
+                  <span class="text-warning">
+                    <%= '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating) %>
+                  </span>
+                </div>
+                <p class="mb-1 text-secondary"><%= review.comment %></p>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+      </div>
+    </div>
+
   </div>
 </body>
 </html>

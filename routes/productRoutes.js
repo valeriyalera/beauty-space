@@ -1,12 +1,9 @@
-// routes/productRoutes.js
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Резервная ссылка на фото, если поле оставят пустым
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500&auto=format&fit=crop&q=60';
 
-// 1. READ ALL: Главная страница со всеми товарами
 router.get('/', async (req, res) => {
   try {
     const productsResult = await db.query(`
@@ -27,12 +24,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. CREATE: Добавление нового товара по текстовой ссылке на фото
 router.post('/products', async (req, res) => {
   try {
     const { title, description, price, volume_ml, category_id, image_url } = req.body;
     
-    // Если ссылку не указали, ставим дефолтное фото
     const finalImageUrl = (image_url && image_url.trim() !== '') ? image_url.trim() : DEFAULT_IMAGE;
 
     await db.query(
@@ -48,7 +43,6 @@ router.post('/products', async (req, res) => {
   }
 });
 
-// 3. READ ONE: Просмотр одного товара и его отзывов
 router.get('/products/:id', async (req, res) => {
   try {
     const productResult = await db.query(
@@ -78,7 +72,6 @@ router.get('/products/:id', async (req, res) => {
   }
 });
 
-// 4. UPDATE (форма): Страница редактирования
 router.get('/products/:id/edit', async (req, res) => {
   try {
     const productResult = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
@@ -98,12 +91,10 @@ router.get('/products/:id/edit', async (req, res) => {
   }
 });
 
-// 4. UPDATE (сохранение): Обновление данных товара в БД
 router.post('/products/:id/edit', async (req, res) => {
   try {
     const { title, description, price, volume_ml, category_id, image_url } = req.body;
     
-    // Если поле ссылки оставили пустым при редактировании — берем старую ссылку из базы
     let finalImageUrl = image_url && image_url.trim() !== '' ? image_url.trim() : null;
     if (!finalImageUrl) {
       const existing = await db.query('SELECT image_url FROM products WHERE id = $1', [req.params.id]);
@@ -124,7 +115,6 @@ router.post('/products/:id/edit', async (req, res) => {
   }
 });
 
-// 5. DELETE: Удаление товара
 router.post('/products/:id/delete', async (req, res) => {
   try {
     await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
@@ -132,6 +122,28 @@ router.post('/products/:id/delete', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Помилка при видаленні товару');
+  }
+});
+
+router.post('/products/:id/reviews', async (req, res) => {
+  try {
+    const { author, rating, comment } = req.body;
+    const productId = req.params.id;
+
+    if (!author || !rating) {
+      return res.status(400).send('Ім’я та оцінка обов’язкові');
+    }
+
+    await db.query(
+      `INSERT INTO reviews (product_id, author, rating, comment)
+       VALUES ($1, $2, $3, $4)`,
+      [productId, author.trim(), parseInt(rating), comment ? comment.trim() : '']
+    );
+
+    res.redirect(`/products/${productId}`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Помилка при додаванні відгуку');
   }
 });
 

@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: beauty_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: beauty_user
+      POSTGRES_PASSWORD: beauty_password
+      POSTGRES_DB: beauty_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beauty_user -d beauty_db"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  web:
+    build: .
+    container_name: beauty_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://beauty_user:beauty_password@db:5432/beauty_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

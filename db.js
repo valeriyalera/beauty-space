@@ -13,7 +13,6 @@ async function initDB() {
   try {
     client = await pool.connect();
 
-    // 1. Таблица категорий
     await client.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
@@ -21,7 +20,6 @@ async function initDB() {
       );
     `);
 
-    // 2. Таблица товаров (с твоими названиями: title и volume_ml)
     await client.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -34,7 +32,6 @@ async function initDB() {
       );
     `);
 
-    // 3. Таблица отзывов
     await client.query(`
       CREATE TABLE IF NOT EXISTS reviews (
         id SERIAL PRIMARY KEY,
@@ -45,8 +42,7 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
-    // 4. Наполнение базовыми категориями
+    
     const catCheck = await client.query('SELECT COUNT(*) FROM categories');
     if (parseInt(catCheck.rows[0].count) === 0) {
       await client.query(`

@@ -148,4 +148,97 @@ router.post('/products/:id/reviews', async (req, res) => {
 });
 
 
+router.get('/api/categories/search', async (req, res) => {
+  try {
+    const term = (req.query.q || '').trim();
+
+
+    if (term.length < 3) {
+      return res.json({ results: [] });
+    }
+
+
+    const result = await db.query(
+      'SELECT id, name AS text FROM categories WHERE name ILIKE $1 ORDER BY name ASC LIMIT 20',
+      [`%${term}%`]
+    );
+    res.json({ results: result.rows });
+  } catch (err) {
+    console.error('Помилка автодоповнення:', err);
+    res.status(500).json({ error: 'Помилка сервера' });
+  }
+});
+
+router.get('/stores', async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, title, price, image_url, category_id FROM products');
+    const products = result.rows;
+
+  
+    const catStats = await db.query(`
+      SELECT c.name, COUNT(p.id) as count 
+      FROM categories c 
+      LEFT JOIN products p ON c.id = p.category_id 
+      GROUP BY c.name
+    `);
+
+    const pickupPoints = [
+      {
+        id: 1,
+        city: 'Київ',
+        name: 'The Beauty Space — Хрещатик',
+        address: 'вул. Хрещатик, 22',
+        phone: '+38 (044) 111-22-33',
+        lat: 50.4471,
+        lng: 30.5228,
+        hours: '10:00 - 21:00',
+        productIds: [1, 2, 3]
+      },
+      {
+        id: 2,
+        city: 'Київ',
+        name: 'The Beauty Space — Поділ',
+        address: 'вул. Петра Сагайдачного, 14',
+        phone: '+38 (044) 222-33-44',
+        lat: 50.4608,
+        lng: 30.5202,
+        hours: '10:00 - 20:00',
+        productIds: [1, 4]
+      },
+      {
+        id: 3,
+        city: 'Львів',
+        name: 'The Beauty Space — Площа Ринок',
+        address: 'площа Ринок, 8',
+        phone: '+38 (032) 333-44-55',
+        lat: 49.8419,
+        lng: 24.0315,
+        hours: '10:00 - 20:00',
+        productIds: [2, 3, 4]
+      },
+      {
+        id: 4,
+        city: 'Одеса',
+        name: 'The Beauty Space — Дерибасівська',
+        address: 'вул. Дерибасівська, 16',
+        phone: '+38 (048) 444-55-66',
+        lat: 46.4846,
+        lng: 30.7388,
+        hours: '10:00 - 21:00',
+        productIds: [1, 3]
+      }
+    ];
+
+    res.render('products/stores', { 
+      products, 
+      pickupPoints,
+      categoryStats: catStats.rows 
+    });
+  } catch (err) {
+    console.error('Помилка завантаження мапи та статистики:', err);
+    res.status(500).send('Помилка сервера');
+  }
+});
+
+
 module.exports = router;

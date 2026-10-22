@@ -1,84 +1,532 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= product.title %> - The Beauty Space</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="p-4 bg-light">
-  <div class="container py-4">
-    <a href="/" class="btn btn-outline-dark mb-4">← Назад до каталогу</a>
+ 
+  <title><%= product.title %> — Купити оригінальний догляд | The Beauty Space</title>
+  <meta name="description" content="Купити <%= product.title %> за ціною <%= product.price %> ₴ в онлайн-бутику The Beauty Space. Офіційний сертифікований оригінал, якісний догляд та швидка доставка по Україні.">
+  <meta name="keywords" content="<%= product.title %>, <%= product.category_name || 'косметика' %>, косметика, догляд за шкірою, The Beauty Space">
+  <meta name="author" content="The Beauty Space">
+  <meta name="robots" content="index, follow">
 
-    <div class="row bg-white p-4 shadow-sm mb-5 rounded">
-      <div class="col-md-5 text-center bg-light p-3 rounded">
-        <img src="<%= product.image_url %>" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;" alt="<%= product.title %>">
-      </div>
-      <div class="col-md-7 ps-md-5 d-flex flex-column justify-content-center">
-        <span class="badge bg-secondary mb-2 align-self-start"><%= product.category_name || 'Без категорії' %></span>
-        <h1 class="display-6 fw-bold"><%= product.title %></h1>
-        <h3 class="my-3 text-dark"><%= product.price %> ₴</h3>
-        <p class="text-muted"><%= product.volume_ml %> мл</p>
-        <p class="lead text-secondary"><%= product.description %></p>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+
+  <meta property="og:locale" content="uk_UA">
+  <meta property="og:type" content="product">
+  <meta property="og:title" content="<%= product.title %> | The Beauty Space">
+  <meta property="og:description" content="Преміальний засіб <%= product.title %> за ціною <%= product.price %> ₴. Замовляйте оригінал у The Beauty Space.">
+  <meta property="og:site_name" content="The Beauty Space">
+  <% if (product.image_url) { %>
+    <meta property="og:image" content="<%= product.image_url %>">
+    <meta property="og:image:alt" content="<%= product.title %>">
+  <% } %>
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= product.title %> | The Beauty Space">
+  <meta name="twitter:description" content="Преміальний засіб <%= product.title %> за ціною <%= product.price %> ₴.">
+  <% if (product.image_url) { %>
+    <meta name="twitter:image" content="<%= product.image_url %>">
+  <% } %>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": "<%= product.title %>",
+    <% if (product.image_url) { %>
+    "image": ["<%= product.image_url %>"],
+    <% } %>
+    "description": "<%= (product.description && product.description.trim() !== '') ? product.description.replace(/"/g, '\\"') : 'Преміальний доглядовий засіб ' + product.title %>",
+    "brand": {
+      "@type": "Brand",
+      "name": "The Beauty Space"
+    },
+    "offers": {
+      "@type": "Offer",
+      "priceCurrency": "UAH",
+      "price": "<%= product.price %>",
+      "availability": "https://schema.org/InStock"
+    }<% if (reviews && reviews.length > 0) { %>,
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "<%= (reviews.reduce((acc, r) => acc + Number(r.rating), 0) / reviews.length).toFixed(1) %>",
+      "reviewCount": "<%= reviews.length %>"
+    }
+    <% } %>
+  }
+  </script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      letter-spacing: -0.04em !important;
+    }
+    .bi, [class^="bi-"], [class*=" bi-"] {
+      font-family: "bootstrap-icons" !important;
+      letter-spacing: normal !important;
+    }
+    body {
+      color: #111111;
+      background-color: #fbfbfb;
+      padding-bottom: 90px;
+    }
+    .navbar-brand {
+      font-weight: 800;
+      font-size: 1.15rem !important;
+      letter-spacing: -0.04em !important;
+    }
+    .hero-img-container {
+      background: #f2f2f2;
+      border-radius: 20px;
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 480px;
+    }
+    .hero-img {
+      max-height: 420px;
+      object-fit: contain;
+      filter: drop-shadow(0 15px 25px rgba(0,0,0,0.08));
+      transition: transform 0.4s ease;
+    }
+    .hero-img:hover {
+      transform: scale(1.02);
+    }
+    .benefit-card {
+      background: #ffffff;
+      border: 1px solid #ebebeb;
+      border-radius: 16px;
+      padding: 28px 20px;
+      transition: all 0.3s ease;
+    }
+    .benefit-card:hover {
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      transform: translateY(-4px);
+    }
+    .sticky-contact-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(18, 18, 18, 0.95);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      z-index: 1050;
+      box-shadow: 0 -5px 25px rgba(0,0,0,0.15);
+      padding: 14px 0;
+    }
+    .badge-category {
+      background-color: #1a1a1a;
+      color: #ffffff;
+      font-size: 0.72rem;
+      padding: 6px 14px;
+      text-transform: uppercase;
+      border-radius: 50px;
+      font-weight: 600;
+      letter-spacing: -0.02em !important;
+      display: inline-block;
+    }
+    .btn-brand {
+      background-color: #111111;
+      color: #fff;
+      border-radius: 50px;
+      padding: 12px 32px;
+      font-weight: 500;
+      letter-spacing: -0.03em !important;
+      transition: all 0.3s ease;
+    }
+    .btn-brand:hover {
+      background-color: #333333;
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-3">
+  <div class="container">
+    <a class="navbar-brand text-uppercase" href="/">The Beauty Space</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="landingNav">
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-3">
+        <li class="nav-item"><a class="nav-link text-uppercase fs-7 small fw-semibold" href="#overview">Огляд</a></li>
+        <li class="nav-item"><a class="nav-link text-uppercase fs-7 small fw-semibold" href="#benefits">Переваги</a></li>
+        <li class="nav-item"><a class="nav-link text-uppercase fs-7 small fw-semibold" href="#usage">Використання</a></li>
+        <li class="nav-item"><a class="nav-link text-uppercase fs-7 small fw-semibold" href="#reviews">Відгуки (<%= reviews ? reviews.length : 0 %>)</a></li>
+        <li class="nav-item"><a class="nav-link text-uppercase fs-7 small fw-semibold text-primary" href="/stores"><i class="bi bi-geo-alt me-1"></i> Мапа наявності</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-2">
+        <a href="/" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> Каталог
+        </a>
       </div>
     </div>
+  </div>
+</nav>
 
-    <div class="row bg-white p-4 shadow-sm rounded">
-      <div class="col-12">
-        <h3 class="mb-4">Відгуки клієнтів (<%= reviews.length %>)</h3>
+  <section id="overview" class="py-5">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6">
+          <div class="hero-img-container">
+            <img 
+              src="<%= product.image_url || 'https://images.unsplash.com/photo-1608248597359-216a69efae3c?auto=format&fit=crop&w=700&q=80' %>" 
+              class="img-fluid hero-img" 
+              alt="<%= product.title %> — преміальний догляд для обличчя"
+            >
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <span class="badge badge-category mb-3"><%= product.category_name || 'Догляд' %></span>
+          
+        
+          <h1 class="display-5 fw-bold mb-3"><%= product.title %> — Преміальний догляд</h1>
+          
+          <div class="d-flex align-items-baseline gap-3 mb-3">
+            <div class="display-6 fw-bold mb-0 text-dark"><%= product.price %> ₴</div>
+            <% if (product.volume_ml) { %>
+              <span class="text-muted fs-5">/ <%= product.volume_ml %> мл</span>
+            <% } %>
+          </div>
 
-        <div class="card mb-4 bg-light border-0">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Залишити відгук</h5>
-            <form action="/products/<%= product.id %>/reviews" method="POST">
+          <p class="lead text-secondary mb-4" style="line-height: 1.6;">
+            <% if (product.description && product.description.trim() !== '') { %>
+              <%= product.description %>
+            <% } else if (product.category_name === 'Lipsticks') { %>
+              Преміальна помада з невагомою текстурою та оксамитовим фінішем. Формула з живильними оліями дбайливо доглядає за шкірою губ, надаючи стійкий і глибокий відтінок без відчуття сухості.
+            <% } else if (product.category_name === 'Serums') { %>
+              Висококонцентрована активна сироватка для відновлення природного мікробіому та сяйва шкіри. Завдяки легкій молекулярній структурі засіб проникає в глибокі шари епідермісу, підвищуючи тонус та еластичність.
+            <% } else if (product.category_name === 'Creams') { %>
+              Збалансований відновлювальний крем для інтенсивного живлення та захисту. Укріплює природний ліпідний бар'єр, нормалізує водний баланс і дарує відчуття шовковистості на весь день.
+            <% } else { %>
+              Ексклюзивний преміальний засіб для відновлення балансу, свіжості та сяйва вашої шкіри. Створений на стику сучасної науки про догляд та витонченої естетики.
+            <% } %>
+          </p>
+
+          <div class="d-flex flex-wrap gap-3 mb-4">
+            <a href="#order" class="btn btn-brand px-4 py-3">
+              <i class="bi bi-bag me-2"></i> Придбати засіб
+            </a>
+            <a href="#reviews" class="btn btn-outline-dark rounded-pill px-4 py-3">
+              <i class="bi bi-star me-2"></i> Читати відгуки
+            </a>
+          </div>
+
+          <div class="pt-3 border-top">
+            <div class="row text-center text-md-start g-3">
+              <div class="col-4">
+                <small class="text-muted d-block">Доставка</small>
+                <span class="fw-semibold small">1-2 дні по Україні</span>
+              </div>
+              <div class="col-4">
+                <small class="text-muted d-block">Формула</small>
+                <span class="fw-semibold small">100% Веган</span>
+              </div>
+              <div class="col-4">
+                <small class="text-muted d-block">Оригінал</small>
+                <span class="fw-semibold small">Сертифіковано</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="benefits" class="py-5 bg-white border-top border-bottom">
+    <div class="container py-3">
+      <div class="text-center max-w-700 mx-auto mb-5">
+        <span class="text-muted text-uppercase small fw-bold">Pure & Effective</span>
+        <h2 class="fw-bold mt-2">Ключові переваги формули</h2>
+      </div>
+      <div class="row g-4 text-center">
+        <% if (product.category_name === 'Lipsticks') { %>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-palette"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Стійкий пігмент</h3>
+              <p class="text-muted small mb-0">Рівномірне покриття та чистий тон, що тримається до 8 годин.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-stars"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Оксамитовий фініш</h3>
+              <p class="text-muted small mb-0">Ніжна шовкова текстура без липкості та скочування.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-droplet"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Олії ши та жожоба</h3>
+              <p class="text-muted small mb-0">Інтенсивне пом'якшення та захист від обвітрювання.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-heart"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Cruelty-Free</h3>
+              <p class="text-muted small mb-0">Етичне виробництво, не тестується на тваринах.</p>
+            </div>
+          </div>
+        <% } else if (product.category_name === 'Serums') { %>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-lightning-charge"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Активні пептиди</h3>
+              <p class="text-muted small mb-0">Стимуляція синтезу колагену та помітний ліфтинг-ефект.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-droplet-half"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Глибоке проникнення</h3>
+              <p class="text-muted small mb-0">Низькомолекулярна основа живить шкіру зсередини.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-sun"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Здорове сяйво</h3>
+              <p class="text-muted small mb-0">Освітлює пігментацію та вирівнює природний тон обличчя.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-shield-check"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Антиоксидантний щит</h3>
+              <p class="text-muted small mb-0">Нейтралізує дію вільних радикалів і захищає від смогу.</p>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-droplet-half"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Глибоке зволоження</h3>
+              <p class="text-muted small mb-0">Миттєво утримує вологу в клітинах шкіри протягом 24 годин.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-shield-check"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Захисний бар'єр</h3>
+              <p class="text-muted small mb-0">Підсилює ліпідний шар та захищає від оксидативного стресу.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-flower1"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Чистий склад</h3>
+              <p class="text-muted small mb-0">Без парабенів, сульфатів та синтетичних барвників.</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="benefit-card h-100">
+              <div class="fs-1 text-dark mb-3"><i class="bi bi-heart"></i></div>
+              <h3 class="fs-5 fw-bold mb-2">Cruelty-Free</h3>
+              <p class="text-muted small mb-0">Етичне виробництво, не тестується на тваринах.</p>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <section id="usage" class="py-5">
+    <div class="container py-3">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-5">
+          <span class="text-muted text-uppercase small fw-bold">Ритуал краси</span>
+          <h2 class="fw-bold mt-2 mb-4">Як правильно застосовувати</h2>
+          <p class="text-secondary mb-4">
+            Для досягнення бездоганного результату дотримуйтесь рекомендованих кроків нанесення <strong><%= product.title %></strong>.
+          </p>
+          <div class="d-flex flex-column gap-3">
+            <% if (product.category_name === 'Lipsticks') { %>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">1</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Підготовка</h3>
+                  <p class="text-muted small mb-0">Зволожте губи бальзамом або скористайтесь м'яким скрабом.</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">2</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Нанесення</h3>
+                  <p class="text-muted small mb-0">Нанесіть засіб від центру губ до кутиків плавними рухами.</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">3</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Фіксація</h3>
+                  <p class="text-muted small mb-0">Для м'якого омбре розтушуйте контур подушечкою пальця.</p>
+                </div>
+              </div>
+            <% } else { %>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">1</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Очищення</h3>
+                  <p class="text-muted small mb-0">Очистіть обличчя м'якою пінкою або гелем перед нанесенням.</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">2</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Нанесення</h3>
+                  <p class="text-muted small mb-0">Розподіліть невелику кількість масажними лініями обличчя.</p>
+                </div>
+              </div>
+              <div class="d-flex align-items-start gap-3">
+                <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">3</span>
+                <div>
+                  <h3 class="fs-6 fw-bold mb-1">Закріплення</h3>
+                  <p class="text-muted small mb-0">Зачекайте 1-2 хвилини до повного поглинання шкірою.</p>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <div class="p-4 p-md-5 bg-white border rounded-4 shadow-sm" id="order">
+            <div class="text-center mb-4">
+              <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small mb-2">Швидке замовлення</span>
+              <h2 class="fs-3 fw-bold">Замовити <%= product.title %></h2>
+              <p class="text-muted small">Залиште свої дані, і наш косметолог-консультант зв'яжеться з вами протягом 15 хвилин.</p>
+            </div>
+            <form onsubmit="event.preventDefault(); alert('Дякуємо! Ваше замовлення прийнято в обробку.');">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Ваше ім'я:</label>
-                  <input type="text" name="author" class="form-control" placeholder="Наприклад, Олена" required>
+                  <label class="form-label small fw-semibold">Ваше ім'я</label>
+                  <input type="text" class="form-control py-2" placeholder="Валерія" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Оцінка:</label>
-                  <select name="rating" class="form-select" required>
-                    <option value="5">⭐⭐⭐⭐⭐ (5 - Чудово)</option>
-                    <option value="4">⭐⭐⭐⭐ (4 - Добре)</option>
-                    <option value="3">⭐⭐⭐ (3 - Нормально)</option>
-                    <option value="2">⭐⭐ (2 - Погано)</option>
-                    <option value="1">⭐ (1 - Жахливо)</option>
-                  </select>
+                  <label class="form-label small fw-semibold">Номер телефону</label>
+                  <input type="tel" class="form-control py-2" placeholder="+38 (099) 000-00-00" required>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Коментар:</label>
-                  <textarea name="comment" class="form-control" rows="3" placeholder="Поділіться враженнями про цей продукт..."></textarea>
+                  <label class="form-label small fw-semibold">Місто та відділення пошти</label>
+                  <input type="text" class="form-control py-2" placeholder="Київ, Нова Пошта №..." required>
                 </div>
-                <div class="col-12">
-                  <button type="submit" class="btn btn-dark">Опублікувати відгук</button>
+                <div class="col-12 mt-4">
+                  <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-semibold">
+                    Оформити замовлення — <%= product.price %> ₴
+                  </button>
                 </div>
               </div>
             </form>
           </div>
         </div>
-
-        <% if (reviews.length === 0) { %>
-          <p class="text-muted">Ще немає відгуків про цей товар. Будьте першими!</p>
-        <% } else { %>
-          <div class="list-group">
-            <% reviews.forEach(review => { %>
-              <div class="list-group-item list-group-item-action flex-column align-items-start border-bottom py-3">
-                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                  <h6 class="mb-0 fw-bold"><%= review.author %></h6>
-                  <span class="text-warning">
-                    <%= '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating) %>
-                  </span>
-                </div>
-                <p class="mb-1 text-secondary"><%= review.comment %></p>
-              </div>
-            <% }) %>
-          </div>
-        <% } %>
-
       </div>
     </div>
+  </section>
 
+  <section id="reviews" class="py-5 bg-white border-top">
+    <div class="container py-3">
+      <div class="row g-5">
+        <div class="col-lg-7">
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <h2 class="fs-3 fw-bold mb-0">Відгуки клієнтів</h2>
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill"><%= reviews ? reviews.length : 0 %> відгуків</span>
+          </div>
+
+          <% if (!reviews || reviews.length === 0) { %>
+            <div class="p-4 bg-light rounded-4 text-center">
+              <i class="bi bi-chat-heart text-muted fs-1 mb-2 d-block"></i>
+              <p class="text-muted mb-0">Ще немає відгуків про цей засіб. Будьте першими, хто поділиться враженнями!</p>
+            </div>
+          <% } else { %>
+            <div class="d-flex flex-column gap-3">
+              <% reviews.forEach(review => { %>
+                <div class="p-4 bg-light rounded-4 border-0">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold mb-0"><%= review.author %></span>
+                    <span class="text-warning">
+                      <%= '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating) %>
+                    </span>
+                  </div>
+                  <p class="text-secondary small mb-0" style="line-height: 1.6;"><%= review.comment %></p>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="p-4 bg-light rounded-4 border">
+            <h3 class="fs-4 fw-bold mb-3">Залишити відгук</h3>
+            <form action="/products/<%= product.id %>/reviews" method="POST">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Ваше ім'я:</label>
+                <input type="text" name="author" class="form-control" placeholder="Олена" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Оцінка:</label>
+                <select name="rating" class="form-select" required>
+                  <option value="5">⭐⭐⭐⭐⭐ (5 - Бездоганно)</option>
+                  <option value="4">⭐⭐⭐⭐ (4 - Дуже добре)</option>
+                  <option value="3">⭐⭐⭐ (3 - Добре)</option>
+                  <option value="2">⭐⭐ (2 - Посередньо)</option>
+                  <option value="1">⭐ (1 - Не сподобалось)</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Ваш коментар:</label>
+                <textarea name="comment" class="form-control" rows="3" placeholder="Опишіть ваші відчуття після використання..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-semibold">
+                Опублікувати відгук
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<div class="sticky-contact-bar">
+  <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <span class="d-none d-md-inline small text-light text-uppercase fw-semibold">
+        <i class="bi bi-headset me-1 text-warning"></i> Консультація 24/7:
+      </span>
+      <a href="tel:+380991234567" class="text-white text-decoration-none small fw-bold">
+        <i class="bi bi-telephone-fill me-1"></i> +38 (099) 123-45-67
+      </a>
+      <a href="https://instagram.com" target="_blank" class="text-white-50 text-decoration-none small d-none d-sm-inline">
+        <i class="bi bi-instagram me-1"></i> @thebeautyspace
+      </a>
+      <a href="/stores" class="text-white-50 text-decoration-none small d-none d-sm-inline">
+        <i class="bi bi-geo-alt-fill me-1 text-warning"></i> Самовивіз
+      </a>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-bold d-none d-sm-inline fs-6 me-2"><%= product.price %> ₴</span>
+      <a href="#order" class="btn btn-light btn-sm rounded-pill px-4 fw-bold">
+        Замовити зараз
+      </a>
+    </div>
   </div>
+</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

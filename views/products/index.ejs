@@ -4,69 +4,195 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Beauty Space - Каталог</title>
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <style>
-    body { background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1c1c1c; }
-    .product-img { height: 240px; object-fit: contain; padding: 15px; background: #f4f4f4; }
-    .card { border-radius: 0; }
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+      letter-spacing: -0.04em !important;
+    }
+    .bi, [class^="bi-"], [class*=" bi-"] {
+      font-family: "bootstrap-icons" !important;
+      letter-spacing: normal !important;
+    }
+    body {
+      background-color: #ffffff;
+      color: #111111;
+    }
+    .header-brand {
+      font-weight: 800;
+      letter-spacing: -0.04em !important;
+      text-transform: uppercase;
+      font-size: 1.2rem;
+    }
+    
+    .rhode-card {
+      background-color: #f5f5f5;
+      border-radius: 24px;
+      padding: 24px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .rhode-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.06);
+    }
+    
+    .category-header {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.04em !important;
+      color: #1a1a1a;
+      margin: 0;
+    }
+
+    .rhode-img-container {
+      height: 270px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0 20px 0;
+    }
+    .rhode-img {
+      max-height: 250px;
+      max-width: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 15px 20px rgba(0,0,0,0.1));
+      transition: transform 0.35s ease;
+    }
+    .rhode-card:hover .rhode-img {
+      transform: scale(1.04);
+    }
+
+    .rhode-stars {
+      color: #111111;
+      font-size: 0.75rem;
+      letter-spacing: 2px !important;
+    }
+    .rhode-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: -0.02em !important;
+      margin-bottom: 2px;
+      color: #111111;
+    }
+    .rhode-subtitle {
+      color: #777777;
+      font-size: 0.85rem;
+      margin: 0;
+      line-height: 1.3;
+    }
+    .rhode-price {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #111111;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .action-btn {
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 50px;
+      padding: 5px 14px;
+    }
   </style>
 </head>
-<body class="p-4">
-  <div class="container">
+<body class="py-4">
+  <div class="container px-md-4">
+    
     <header class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
-      <h1 class="h3 m-0">The Beauty Space</h1>
-      <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createModal">+ Додати товар</button>
+      <h1 class="header-brand m-0">The Beauty Space</h1>
+      <button class="btn btn-dark btn-sm rounded-pill px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#createModal">
+        + Додати товар
+      </button>
     </header>
 
-    <div class="d-flex justify-content-between align-items-end mb-4">
-      <h2 class="h5 text-uppercase m-0">Bestsellers 2026</h2>
+    <div class="d-flex justify-content-between align-items-baseline mb-4">
+      <h2 class="fs-5 fw-bold text-uppercase m-0">Bestsellers</h2>
       <span class="text-muted small">Всього: <%= products.length %></span>
     </div>
 
     <div class="row g-4">
       <% products.forEach(p => { %>
         <div class="col-12 col-md-6 col-lg-4">
-          <div class="card h-100 shadow-sm border-0">
-            <img src="<%= p.image_url %>" class="card-img-top product-img" alt="<%= p.title %>">
-            <div class="card-body d-flex flex-column justify-content-between">
-              <div>
-                <span class="badge bg-secondary mb-2"><%= p.category_name %></span>
-                <h5 class="card-title"><%= p.title %></h5>
-                <p class="text-muted small"><%= p.volume_ml %> мл</p>
-                <p class="card-text text-muted small"><%= p.description %></p>
+          <div class="rhode-card">
+
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="category-header">
+                <%= p.category_name || 'Beauty Care' %>
+              </span>
+              <% if (p.volume_ml) { %>
+                <span class="text-muted small"><%= p.volume_ml %> мл</span>
+              <% } %>
+            </div>
+
+            <a href="/products/<%= p.id %>" class="rhode-img-container text-decoration-none">
+              <img src="<%= p.image_url %>" class="rhode-img" alt="<%= p.title %>">
+            </a>
+
+            <div>
+              <div class="d-flex align-items-center gap-1 mb-1">
+                <span class="rhode-stars">★★★★★</span>
               </div>
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                <span class="fw-bold fs-5"><%= p.price %> ₴</span>
-                <div>
-                  <a href="/products/<%= p.id %>" class="btn btn-sm btn-outline-dark">Деталі</a>
-                  <a href="/products/<%= p.id %>/edit" class="btn btn-sm btn-outline-secondary">Ред.</a>
+
+              <div class="d-flex justify-content-between align-items-baseline gap-2 mb-3">
+                <div class="pe-2">
+                  <a href="/products/<%= p.id %>" class="text-decoration-none">
+                    <div class="rhode-title text-truncate"><%= p.title %></div>
+                  </a>
+                  <p class="rhode-subtitle text-truncate">
+                    Преміальний догляд
+                  </p>
+                </div>
+                <div class="rhode-price"><%= p.price %> ₴</div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <a href="/products/<%= p.id %>" class="btn btn-dark action-btn">Деталі товару</a>
+                <div class="d-flex gap-1">
+                  <a href="/products/<%= p.id %>/edit" class="btn btn-outline-secondary action-btn">Ред.</a>
                   <form action="/products/<%= p.id %>/delete" method="POST" class="d-inline">
-                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Видалити цей товар?')">×</button>
+                    <button class="btn btn-outline-danger action-btn" onclick="return confirm('Видалити цей товар?')">×</button>
                   </form>
                 </div>
               </div>
+
             </div>
+
           </div>
         </div>
       <% }) %>
     </div>
+
   </div>
 
   <div class="modal fade" id="createModal" tabindex="-1">
     <div class="modal-dialog">
-      <div class="modal-content">
+      <div class="modal-content rounded-4 border-0">
         <form action="/products" method="POST">
-          <div class="modal-header">
-            <h5 class="modal-title">Додати новий товар</h5>
+          <div class="modal-header border-bottom">
+            <h5 class="modal-title fw-bold">Додати новий товар</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body p-4">
             <div class="mb-3">
-              <label class="form-label">Назва</label>
+              <label class="form-label small fw-semibold">Назва</label>
               <input type="text" name="title" class="form-control" required placeholder="Hydra-Glow Cream">
             </div>
             <div class="mb-3">
-              <label class="form-label">Категорія</label>
+              <label class="form-label small fw-semibold">Категорія</label>
               <select name="category_id" class="form-select">
                 <% categories.forEach(c => { %>
                   <option value="<%= c.id %>"><%= c.name %></option>
@@ -75,25 +201,25 @@
             </div>
             <div class="row mb-3">
               <div class="col">
-                <label class="form-label">Ціна (₴)</label>
+                <label class="form-label small fw-semibold">Ціна (₴)</label>
                 <input type="number" step="0.01" name="price" class="form-control" required>
               </div>
               <div class="col">
-                <label class="form-label">Об'єм (мл)</label>
+                <label class="form-label small fw-semibold">Об'єм (мл)</label>
                 <input type="number" name="volume_ml" class="form-control" required>
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Опис</label>
+              <label class="form-label small fw-semibold">Опис</label>
               <textarea name="description" class="form-control" rows="2"></textarea>
             </div>
             <div class="mb-3">
-              <label class="form-label">Фото флакону / баночки (Файл)</label>
-            <input type="url" name="image_url" placeholder="https://example.com/photo.jpg" class="form-control">
+              <label class="form-label small fw-semibold">Фото флакону / баночки (URL)</label>
+              <input type="url" name="image_url" placeholder="https://example.com/photo.jpg" class="form-control">
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-dark w-100">Зберегти</button>
+          <div class="modal-footer border-top">
+            <button type="submit" class="btn btn-dark w-100 rounded-pill py-2 fw-semibold">Зберегти</button>
           </div>
         </form>
       </div>

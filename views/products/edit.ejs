@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Редагувати: <%= product.title %></title>
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 </head>
 <body class="p-4 bg-light">
   <div class="container" style="max-width: 600px;">
@@ -16,14 +20,24 @@
           <label class="form-label">Назва</label>
           <input type="text" name="title" value="<%= product.title %>" class="form-control" required>
         </div>
+        
+       
         <div class="mb-3">
-          <label class="form-label">Категорія</label>
-          <select name="category_id" class="form-select">
-            <% categories.forEach(c => { %>
-              <option value="<%= c.id %>" <%= c.id === product.category_id ? 'selected' : '' %>><%= c.name %></option>
-            <% }) %>
+          <label for="categorySelect" class="form-label fw-semibold">
+            Категорія товару (F2: Autocomplete від 3 символів)
+          </label>
+          <select name="category_id" id="categorySelect" class="form-select" style="width: 100%;">
+            <% if (product.category_id) { %>
+              <option value="<%= product.category_id %>" selected>
+                <%= product.category_name || (categories && categories.find(c => c.id === product.category_id)?.name) || 'Обрана категорія' %>
+              </option>
+            <% } %>
           </select>
+          <div class="form-text text-muted">
+            Почніть вводити назву (мінімум 3 літери, наприклад: <i>Cre</i>, <i>Lip</i>, <i>Ser</i>).
+          </div>
         </div>
+
         <div class="row mb-3">
           <div class="col">
             <label class="form-label">Ціна (₴)</label>
@@ -42,9 +56,50 @@
           <label class="form-label">Посилання на фото (URL)</label>
           <input type="url" name="image_url" value="<%= product.image_url %>" class="form-control" placeholder="https://example.com/photo.jpg">
         </div>
-        <button type="submit" class="btn btn-dark w-100">Зберегти зміни</button>
+        <button type="submit" class="btn btn-dark w-100 py-2">Зберегти зміни</button>
       </form>
     </div>
   </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      $('#categorySelect').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'Почніть вводити назву категорії...',
+        allowClear: true,
+        minimumInputLength: 3, 
+        ajax: {
+          url: '/api/categories/search',
+          dataType: 'json',
+          delay: 300, 
+          data: function (params) {
+            return {
+              q: params.term
+            };
+          },
+          processResults: function (data) {
+            return {
+              results: data.results
+            };
+          },
+          cache: true
+        },
+        language: {
+          inputTooShort: function () {
+            return "Будь ласка, введіть 3 або більше символів...";
+          },
+          noResults: function () {
+            return "Категорій не знайдено";
+          },
+          searching: function () {
+            return "Пошук у базі даних...";
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>

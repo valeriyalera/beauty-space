@@ -112,11 +112,46 @@
 <body class="py-4">
   <div class="container px-md-4">
     
-    <header class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
+    <header class="d-flex flex-wrap justify-content-between align-items-center mb-5 pb-3 border-bottom gap-3">
       <h1 class="header-brand m-0">The Beauty Space</h1>
-      <button class="btn btn-dark btn-sm rounded-pill px-4 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#createModal">
-        + Додати товар
-      </button>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="/shared-space" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 fw-semibold">
+          🎨 Shared Board
+        </a>
+        <a href="/editor" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 fw-semibold">
+          📝 Beauty Notes (C12)
+        </a>
+        <a href="/game" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 fw-semibold">
+          🎮 Міні-гра
+        </a>
+        <a href="/ai-consultant" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 fw-semibold">
+          <i class="bi bi-stars me-1"></i> AI Консультант
+        </a>
+        <a href="/connectivity" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold">
+          <i class="bi bi-cpu me-1"></i> Live Stock
+        </a>
+        <button class="btn btn-dark btn-sm rounded-pill px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#createModal">
+          + Додати товар
+        </button>
+    
+        <div class="ms-md-2">
+          <% if (typeof user !== 'undefined' && user) { %>
+            <div class="d-flex align-items-center gap-2 bg-light px-3 py-1 rounded-pill border">
+              <% if (user.avatar_url) { %>
+                <img src="<%= user.avatar_url %>" alt="<%= user.name %>" class="rounded-circle" width="28" height="28" referrerpolicy="no-referrer">
+              <% } else { %>
+                <i class="bi bi-person-circle fs-5"></i>
+              <% } %>
+              <span class="small fw-semibold"><%= user.name %></span>
+              <a href="/auth/logout" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0 ms-1" style="font-size: 0.75rem;">Вийти</a>
+            </div>
+          <% } else { %>
+            <a href="/auth/google" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-2">
+              <i class="bi bi-google"></i> Увійти через Google
+            </a>
+          <% } %>
+        </div>
+      </div>
     </header>
 
     <div class="d-flex justify-content-between align-items-baseline mb-4">
@@ -175,6 +210,25 @@
         </div>
       <% }) %>
     </div>
+
+    <footer class="mt-5 pt-4 pb-3 border-top text-center">
+      <div class="d-flex justify-content-center align-items-center gap-3">
+        <a href="/ai-consultant" class="text-secondary small text-decoration-none">
+          <i class="bi bi-stars"></i> ШІ-консультант 
+        </a>
+        <span class="text-muted">•</span>
+        <a href="/connectivity" class="text-secondary small text-decoration-none">
+          <i class="bi bi-cpu"></i> Моніторинг складу & Connectivity 
+        </a>
+        <a href="/game" class="text-secondary small text-decoration-none">
+          <i class="bi bi-controller"></i> Гра на Canvas 
+        </a>
+        <a href="/shared-space" class="text-secondary small text-decoration-none">
+          <i class="bi bi-easel"></i> Shared Space
+        </a>
+      </div>
+      <p class="text-muted small mt-2 mb-0">© 2026 The Beauty Space</p>
+    </footer>
 
   </div>
 

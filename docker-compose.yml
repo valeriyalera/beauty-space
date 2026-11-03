@@ -26,6 +26,8 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgres://beauty_user:beauty_password@db:5432/beauty_db
+      TELEGRAM_BOT_TOKEN: 8497506353:AAGl8qR2ZbnHBvCeMSJZ994BlTBpUYhjBoM
+      TELEGRAM_CHAT_ID: 1271157370
     depends_on:
       db:
         condition: service_healthy

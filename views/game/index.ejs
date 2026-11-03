@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glow Catch — 2D Canvas Game | The Beauty Space</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body {
+      background-color: #f7f7f8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #111;
+    }
+    .game-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .canvas-container {
+      position: relative;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+      border: 1px solid #ebebeb;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(180deg, #fbfbfb 0%, #f3f3f5 100%);
+      cursor: crosshair;
+    }
+    .hud {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .overlay-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+  </style>
+</head>
+<body class="py-4">
+  <div class="container game-wrapper">
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h4 fw-bold mb-0">Glow Catch (2D Canvas Game)</h1>
+        <p class="text-muted small mb-0">JavaScript Canvas API • Game Loop • Collision Detection</p>
+      </div>
+      <a href="/" class="btn btn-outline-dark btn-sm rounded-pill"><i class="bi bi-arrow-left me-1"></i> Каталог</a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-4 border mb-3 hud">
+      <div>Очки: <span id="scoreVal" class="text-dark fs-5">0</span></div>
+      <div>Життя: <span id="livesVal" class="text-danger fs-5">❤️❤️❤️</span></div>
+      <div>Рекорд: <span id="highScoreVal" class="text-muted">0</span></div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="600" height="450"></canvas>
+
+      <div id="startScreen" class="overlay-screen">
+        <h2 class="fw-bold mb-2">✨ Glow Catch ✨</h2>
+        <p class="text-muted small max-w-400 mb-4" style="max-width: 400px;">
+          Ловіть косметичні засоби (💧 сироватки, 🧴 креми, 💄 помади) у свою косметичку! Уникайте пилу та забруднень (💨). Наберіть 100 очок, щоб отримати секретний промокод!
+        </p>
+        <button id="startBtn" class="btn btn-dark rounded-pill px-5 py-2 fw-semibold">Почати гру</button>
+      </div>
+
+      <div id="gameOverScreen" class="overlay-screen d-none">
+        <h2 class="fw-bold mb-1" id="gameOverTitle">Кінець гри!</h2>
+        <p class="text-muted mb-3" id="gameOverDesc">Ваш фінальний рахунок: <b id="finalScore">0</b></p>
+        <div id="promoBox" class="d-none alert alert-dark py-2 px-4 rounded-pill mb-3 fw-bold small">
+          🎁 Ваш промокод: <span class="text-primary">BEAUTYGLOW15</span> (-15%)
+        </div>
+        <button id="restartBtn" class="btn btn-dark rounded-pill px-5 py-2 fw-semibold">Спробувати знову</button>
+      </div>
+    </div>
+
+    <div class="text-center mt-3 text-muted small">
+      Керування: <b>Стрілки ← →</b> або <b>Рух миші</b> по полотну
+    </div>
+
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scoreVal = document.getElementById('scoreVal');
+    const livesVal = document.getElementById('livesVal');
+    const highScoreVal = document.getElementById('highScoreVal');
+
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const gameOverTitle = document.getElementById('gameOverTitle');
+    const gameOverDesc = document.getElementById('gameOverDesc');
+    const finalScore = document.getElementById('finalScore');
+    const promoBox = document.getElementById('promoBox');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+
+    let isRunning = false;
+    let score = 0;
+    let lives = 3;
+    let highScore = localStorage.getItem('glow_high_score') || 0;
+    highScoreVal.textContent = highScore;
+
+
+    const player = {
+      width: 90,
+      height: 22,
+      x: canvas.width / 2 - 45,
+      y: canvas.height - 35,
+      speed: 7,
+      dx: 0
+    };
+
+
+    let items = [];
+    let spawnTimer = 0;
+    let animId = null;
+
+    const itemTypes = [
+      { emoji: '💧', type: 'good', points: 10, size: 24, speed: 2.5 },
+      { emoji: '🧴', type: 'good', points: 15, size: 26, speed: 2.2 },
+      { emoji: '💄', type: 'good', points: 20, size: 24, speed: 2.8 },
+      { emoji: '✨', type: 'good', points: 30, size: 22, speed: 3.5 },
+      { emoji: '💨', type: 'bad', points: 0, size: 24, speed: 2.6 } 
+    ];
+
+    function spawnItem() {
+      const type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+      const x = Math.random() * (canvas.width - 40) + 20;
+      items.push({
+        x: x,
+        y: -30,
+        emoji: type.emoji,
+        type: type.type,
+        points: type.points,
+        size: type.size,
+        speed: type.speed + Math.min(score * 0.015, 2.5) 
+      });
+    }
+
+
+    function updateHUD() {
+      scoreVal.textContent = score;
+      livesVal.textContent = '❤️'.repeat(Math.max(0, lives));
+      if (score > highScore) {
+        highScore = score;
+        highScoreVal.textContent = highScore;
+        localStorage.setItem('glow_high_score', highScore);
+      }
+    }
+
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.roundRect(player.x, player.y, player.width, player.height, 10);
+      ctx.fill();
+
+      ctx.strokeStyle = '#888888';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(player.x + player.width / 2, player.y, 14, Math.PI, 0, false);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BEAUTY SPACE', player.x + player.width / 2, player.y + 14);
+
+      items.forEach(item => {
+        ctx.font = `${item.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.emoji, item.x, item.y);
+      });
+    }
+
+    function update() {
+
+      player.x += player.dx;
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+      spawnTimer++;
+      if (spawnTimer % 45 === 0) {
+        spawnItem();
+      }
+
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        it.y += it.speed;
+
+        const hitX = it.x >= player.x && it.x <= player.x + player.width;
+        const hitY = it.y + it.size / 2 >= player.y && it.y - it.size / 2 <= player.y + player.height;
+
+        if (hitX && hitY) {
+          if (it.type === 'good') {
+            score += it.points;
+          } else {
+            lives--;
+          }
+          items.splice(i, 1);
+          updateHUD();
+
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
+          continue;
+        }
+
+        if (it.y > canvas.height + 30) {
+          if (it.type === 'good') {
+            lives--;
+            updateHUD();
+            if (lives <= 0) {
+              endGame();
+              return;
+            }
+          }
+          items.splice(i, 1);
+        }
+      }
+    }
+
+    function loop() {
+      if (!isRunning) return;
+      update();
+      draw();
+      animId = requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      score = 0;
+      lives = 3;
+      items = [];
+      spawnTimer = 0;
+      isRunning = true;
+      updateHUD();
+
+      startScreen.classList.add('d-none');
+      gameOverScreen.classList.add('d-none');
+      promoBox.classList.add('d-none');
+
+      loop();
+    }
+
+    function endGame() {
+      isRunning = false;
+      cancelAnimationFrame(animId);
+
+      finalScore.textContent = score;
+      if (score >= 100) {
+        gameOverTitle.textContent = '🎉 Чудовий результат!';
+        promoBox.classList.remove('d-none');
+      } else {
+        gameOverTitle.textContent = 'Кінець гри!';
+        promoBox.classList.add('d-none');
+      }
+
+      gameOverScreen.classList.remove('d-none');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') player.dx = -player.speed;
+      if (e.key === 'ArrowRight' || e.key === 'd') player.dx = player.speed;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) player.dx = 0;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      player.x = mouseX - player.width / 2;
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+
+    draw();
+  </script>
+</body>
+</html>

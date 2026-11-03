@@ -27,7 +27,6 @@ test('C1 Models & Validation Tests', async (t) => {
   });
 });
 
-// 2. Тести для пункту C5 (REST API Logic & Validation)
 test('C5 REST API Payload & Response Tests', async (t) => {
   await t.test('Валідація POST /api/products: обов’язкові поля title та додатня ціна', () => {
     const validateProductPayload = (body) => {
@@ -68,7 +67,6 @@ test('C5 REST API Payload & Response Tests', async (t) => {
   });
 });
 
-// 3. Тести для пункту C6 (Responsive Landing Page & Dynamic UI)
 test('C6 Product Landing Page UI & Structure Tests', async (t) => {
   const getCategoryBenefit = (category) => {
     switch (category) {
@@ -125,7 +123,6 @@ test('C6 Product Landing Page UI & Structure Tests', async (t) => {
   });
 });
 
-// 4. Тести для пункту C7 (SEO Optimization & Metadata Tests)
 const BASE_URL = process.env.TEST_URL || 'http://localhost:3000';
 
 function fetchHtml(url) {
@@ -183,7 +180,6 @@ describe('C7: SEO Optimization & Metadata Tests', () => {
   });
 });
 
-// 5. Тести для пункту C8 (Сторонній API: OpenStreetMap / Leaflet)
 describe('C8: Third-party Map API Integration Tests', () => {
 
   test('GET /stores повертає статус 200 та підключає сторонній API Leaflet/OpenStreetMap', async () => {
@@ -230,7 +226,6 @@ describe('C8: Third-party Map API Integration Tests', () => {
 
 });
 
-// 6. Тести для пункту F1 (Візуалізація статистики: Chart.js)
 describe('F1: Data Visualization & Statistics Tests (Chart.js)', () => {
 
   test('GET /stores підключає бібліотеку Chart.js та містить canvas-контейнери діаграм', async () => {
@@ -273,7 +268,6 @@ describe('F1: Data Visualization & Statistics Tests (Chart.js)', () => {
 
 });
 
-// 7. Тести для пункту F2 (Autocomplete Selector: Select2 + AJAX)
 describe('F2: Autocomplete Selector & AJAX Search Tests', () => {
 
   function fetchJson(url) {
@@ -330,6 +324,295 @@ describe('F2: Autocomplete Selector & AJAX Search Tests', () => {
     assert.match(html, /minimumInputLength\s*:\s*3/i, 'Select2 має бути налаштований на пошук від 3 символів');
     assert.match(html, /delay\s*:\s*\d+/i, 'Select2 має мати налаштовану затримку вводу (debounce)');
     assert.match(html, /\/api\/categories\/search/i, 'AJAX запит повинен звертатися до відповідного ендпоінту бекенду');
+  });
+
+});
+
+describe('C10: Connectivity & Real-time Protocols Tests', () => {
+
+  function fetchJsonLocal(url) {
+    return new Promise((resolve, reject) => {
+      http.get(url, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            resolve({ statusCode: res.statusCode, body: JSON.parse(data) });
+          } catch (e) {
+            resolve({ statusCode: res.statusCode, body: data });
+          }
+        });
+      }).on('error', reject);
+    });
+  }
+
+  test('Вимога C10: Frequent Polling GET /api/connectivity/poll відповідає статусом 200 та повертає дані', async () => {
+    const res = await fetchJsonLocal(`${BASE_URL}/api/connectivity/poll`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.mode, 'frequent-poll');
+    assert.ok(Array.isArray(res.body.data), 'Дані повинні бути масивом подій складу');
+  });
+
+  test('Вимога C10: Long Polling GET /api/connectivity/long-poll підтримує запит та повертає масив', async () => {
+    const res = await fetchJsonLocal(`${BASE_URL}/api/connectivity/long-poll?lastId=0`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(Array.isArray(res.body), 'Long polling повинен повертати масив подій');
+  });
+
+  test('Вимога C10: Сторінка бенчмарку GET /connectivity підключає WebSockets та перемикач режимів', async () => {
+    const res = await fetchHtml(`${BASE_URL}/connectivity`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /WebSocket/i, 'Сторінка повинна містити реалізацію WebSocket');
+    assert.match(res.body, /Long Polling/i, 'Сторінка повинна підтримувати Long Polling');
+    assert.match(res.body, /Frequent Polling/i, 'Сторінка повинна підтримувати Frequent Polling');
+  });
+
+});
+
+
+describe('B2: Telegram Bot Integration Tests', () => {
+
+  test('Вимога B2: Ендпоінт швидкого замовлення POST /api/orders/quick відповідає статусом 200', async () => {
+    const payload = JSON.stringify({
+      productId: 1,
+      productTitle: 'SkinMuse Hydrating Serum',
+      phone: '+380991234567'
+    });
+
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request(`${BASE_URL}/api/orders/quick`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      }, (resStream) => {
+        let data = '';
+        resStream.on('data', chunk => data += chunk);
+        resStream.on('end', () => resolve({ statusCode: resStream.statusCode, body: data }));
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /success/i);
+  });
+
+});
+
+describe('C21: AI Agent SSE Streaming & Tool Calling Tests', () => {
+
+  test('Вимога C21: GET /ai-consultant рендерить інтерфейс чат-агента', async () => {
+    const res = await fetchHtml(`${BASE_URL}/ai-consultant`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /AI Beauty Consultant/i);
+    assert.match(res.body, /EventSource/i);
+  });
+
+  test('Вимога C21: GET /api/ai/chat-stream повертає text/event-stream потік', async () => {
+    const res = await new Promise((resolve, reject) => {
+      http.get(`${BASE_URL}/api/ai/chat-stream?message=сироватка`, (resStream) => {
+        let rawData = '';
+        resStream.on('data', chunk => rawData += chunk.toString());
+        resStream.on('end', () => resolve({
+          statusCode: resStream.statusCode,
+          headers: resStream.headers,
+          data: rawData
+        }));
+      }).on('error', reject);
+    });
+
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.headers['content-type'], /text\/event-stream/);
+    assert.match(res.data, /event: thought/);
+    assert.match(res.data, /event: token/);
+  });
+
+});
+const { spawn } = require('child_process');
+
+describe('C22: Model Context Protocol (MCP) Server Tests', () => {
+
+  test('Вимога C22: MCP сервер повертає список інструментів через JSON-RPC (3 Read, 1 Write)', async () => {
+    const mcpProcess = spawn('node', ['mcpServer.js'], {
+      env: { ...process.env }
+    });
+
+    const initRequest = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'test-client', version: '1.0.0' }
+      }
+    }) + '\n';
+
+
+    const listToolsRequest = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/list',
+      params: {}
+    }) + '\n';
+
+    const response = await new Promise((resolve, reject) => {
+      let buffer = '';
+      
+      const timeout = setTimeout(() => {
+        mcpProcess.kill();
+        reject(new Error('Таймаут відповіді від MCP сервера'));
+      }, 5000);
+
+      mcpProcess.stdout.on('data', (chunk) => {
+        buffer += chunk.toString();
+       
+        const lines = buffer.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line.trim());
+            if (parsed.id === 2 && parsed.result && parsed.result.tools) {
+              clearTimeout(timeout);
+              mcpProcess.kill();
+              return resolve(parsed);
+            }
+          } catch {
+          }
+        }
+      });
+
+      mcpProcess.stderr.on('data', () => {});
+      mcpProcess.on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+
+      mcpProcess.stdin.write(initRequest);
+      setTimeout(() => {
+        mcpProcess.stdin.write(listToolsRequest);
+      }, 100);
+    });
+
+    assert.ok(response.result, 'Відповідь повинна містити result');
+    const tools = response.result.tools;
+    assert.ok(tools.length >= 4, 'Сервер повинен повертати мінімум 4 інструменти');
+
+    const toolNames = tools.map(t => t.name);
+    assert.ok(toolNames.includes('get_categories'), 'Повинен бути інструмент get_categories');
+    assert.ok(toolNames.includes('search_products'), 'Повинен бути інструмент search_products');
+    assert.ok(toolNames.includes('get_product_details'), 'Повинен бути інструмент get_product_details');
+    assert.ok(toolNames.includes('create_product'), 'Повинен бути інструмент create_product');
+  });
+
+});
+
+
+describe('F6: 2D Canvas Graphics & Game Tests', () => {
+
+  test('Вимога F6: GET /game рендерить полотно canvas та ігрові елементи', async () => {
+    const res = await fetchHtml(`${BASE_URL}/game`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /<canvas id="gameCanvas"/i, 'Сторінка повинна містити тег canvas');
+    assert.match(res.body, /getContext\(['"]2d['"]\)/i, 'Скрипт повинен ініціалізувати 2D контекст полотна');
+    assert.match(res.body, /requestAnimationFrame/i, 'Повинен використовуватись цикл анімації requestAnimationFrame');
+    assert.match(res.body, /Glow Catch/i, 'Сторінка повинна містити назву гри');
+  });
+
+});
+
+describe('C18: Shared Dashboard & Whiteboard Tests', () => {
+
+  test('Вимога C18: GET /shared-space повертає статус 200 та ініціалізує спільну дошку', async () => {
+    const res = await fetchHtml(`${BASE_URL}/shared-space`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /whiteboardCanvas/i, 'Повинно бути присутнє полотно для малювання');
+    assert.match(res.body, /\/ws\/board/i, 'Повинно бути підключення до WebSockets дошки');
+    assert.match(res.body, /USERS_COUNT/i, 'Повинна підтримуватись синхронізація кількості користувачів');
+  });
+
+});
+
+describe('C16: OAuth2 Authentication & Authorization Tests', () => {
+
+  test('Вимога C16: GET /auth/google ініціює перенаправлення (Redirect 302) на Google OAuth', async () => {
+    const res = await fetchHtml(`${BASE_URL}/auth/google`);
+    assert.strictEqual(res.statusCode, 302);
+    assert.match(res.headers.location || '', /accounts\.google\.com/i, 'Перенаправлення повинно вести на accounts.google.com');
+  });
+
+  test('Вимога C16: GET /api/auth/me повертає статус 401 для неавторизованого запиту', async () => {
+    const res = await fetchHtml(`${BASE_URL}/api/auth/me`);
+    assert.strictEqual(res.statusCode, 401);
+    const json = JSON.parse(res.body);
+    assert.strictEqual(json.authenticated, false);
+  });
+
+});
+
+describe('C12: Dynamic Markdown & Notion Editor Tests', () => {
+
+  test('Вимога C12: GET /editor повертає статус 200 та ініціалізує блочний редактор', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /blocksContainer/i, 'Повинен бути присутній контейнер блоків');
+    assert.match(res.body, /localStorage\.setItem/i, 'Повинно бути реалізовано збереження в localStorage');
+    assert.match(res.body, /notion-block/i, 'Повинні підтримуватися структурні блоки');
+  });
+
+});
+
+describe('F3: Drag-and-Drop Interaction & Sorting Tests', () => {
+  test('Вимога F3: Сторінка редактора містить розмітку для перетягування (draggable та drag-handle)', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(
+      res.body,
+      /(draggable=['"]true['"]|setAttribute\(['"]draggable['"],\s*['"]true['"]\))/i,
+      'Блоки повинні мати підтримку перетягування draggable'
+    );
+    assert.match(res.body, /class=['"][^'"]*drag-handle/i, 'Повинен бути візуальний маніпулятор перетягування .drag-handle');
+    assert.match(res.body, /bi-grip-vertical/i, 'Повинна бути присутня іконка захоплення grip');
+  });
+
+});
+
+describe('C13: Cross-device Real-time Synchronization Tests', () => {
+
+  test('Вимога C13: Редактор ініціалізує WebSocket-з\'єднання для синхронізації', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /new WebSocket\(/i, 'Сторінка має створювати клієнтське WebSocket з\'єднання');
+    assert.match(res.body, /editor_sync/i, 'Повинен бути протокол синхронізації повідомлень editor_sync');
+    assert.match(res.body, /editor_update/i, 'Повинна надсилатися подія оновлення editor_update');
+  });
+
+  test('Вимога C13: Реалізовано обробку зовнішніх змін без переривання взаємодії', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /applyDocumentData/i, 'Повинна бути функція оновлення дерева документа при отриманні WS-даних');
+  });
+
+});
+
+describe('C14: Real-time Action Visualization & Dynamic Motion Tests', () => {
+
+  test('Вимога C14: Сторінка редактора містить CSS-анімації підсвічування та руху (.remote-highlight, remotePulse)', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /remote-highlight/i, 'Повинен бути клас remote-highlight для підсвічування дій');
+    assert.match(res.body, /@keyframes\s+remotePulse/i, 'Повинна бути визначена ключова анімація пульсації remotePulse');
+    assert.match(res.body, /remote-presence-tag/i, 'Повинен бути бейдж присутності remote-presence-tag');
+  });
+
+  test('Вимога C14: Клієнтська логіка підтримує передачу та обробку changedBlockId для візуалізації дій', async () => {
+    const res = await fetchHtml(`${BASE_URL}/editor`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.match(res.body, /changedBlockId/i, 'Має передаватися та оброблятися changedBlockId при отриманні WS оновлень');
+    assert.match(res.body, /classList\.add\(['"]remote-highlight['"]\)/i, 'Має динамічно додаватися підсвітка зміненого блоку');
   });
 
 });

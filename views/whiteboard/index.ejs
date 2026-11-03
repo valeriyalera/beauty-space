@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shared Space | The Beauty Space</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body { background-color: #f7f7f8; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    .toolbar-card { border-radius: 18px; border: 1px solid #e5e7eb; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .board-container {
+      background: #ffffff;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+      cursor: crosshair;
+      touch-action: none;
+    }
+    canvas { display: block; width: 100%; height: 560px; }
+    .color-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+    .color-btn.active { border-color: #111; transform: scale(1.15); }
+  </style>
+</head>
+<body class="py-4">
+  <div class="container-fluid px-md-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h4 fw-bold mb-0">Спільний простір (Shared Beauty Space)</h1>
+        <p class="text-muted small mb-0">Спільне малювання схем догляду, підбору товара та мудбордів у реальному часі через WebSockets</p>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-dark rounded-pill px-3 py-2">
+          <i class="bi bi-people-fill me-1 text-success"></i> Онлайн: <span id="onlineCount">1</span>
+        </span>
+        <a href="/" class="btn btn-outline-dark btn-sm rounded-pill px-3">До магазину</a>
+      </div>
+    </div>
+
+    <div class="card toolbar-card p-3 mb-3 bg-white">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="small fw-semibold me-2">Колір:</span>
+          <div class="color-btn active" style="background: #111111;" data-color="#111111"></div>
+          <div class="color-btn" style="background: #e11d48;" data-color="#e11d48"></div>
+          <div class="color-btn" style="background: #ec4899;" data-color="#ec4899"></div>
+          <div class="color-btn" style="background: #0284c7;" data-color="#0284c7"></div>
+          <div class="color-btn" style="background: #10b981;" data-color="#10b981"></div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <span class="small fw-semibold">Товщина:</span>
+          <input type="range" id="lineWidth" class="form-range" min="1" max="25" value="3" style="width: 120px;">
+          <span id="widthVal" class="small text-muted" style="min-width: 25px;">3px</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button id="eraserBtn" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-eraser-fill me-1"></i> Гумка
+          </button>
+          <button id="clearBtn" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+            <i class="bi bi-trash3-fill me-1"></i> Очистити для всіх
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="board-container">
+      <canvas id="whiteboardCanvas" width="1400" height="700"></canvas>
+    </div>
+
+  </div>
+
+  <script>
+    const canvas = document.getElementById('whiteboardCanvas');
+    const ctx = canvas.getContext('2d');
+    const onlineCount = document.getElementById('onlineCount');
+    const lineWidthInput = document.getElementById('lineWidth');
+    const widthVal = document.getElementById('widthVal');
+    const clearBtn = document.getElementById('clearBtn');
+    const eraserBtn = document.getElementById('eraserBtn');
+    const colorBtns = document.querySelectorAll('.color-btn');
+
+    let currentColor = '#111111';
+    let currentWidth = 3;
+    let isDrawing = false;
+    let isEraser = false;
+    let lastX = 0;
+    let lastY = 0;
+
+ 
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/board`);
+
+    function drawLineSegment(x1, y1, x2, y2, color, width, emit = false) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      if (emit && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'DRAW_LINE',
+          payload: { x1, y1, x2, y2, color, width }
+        }));
+      }
+    }
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'INIT_BOARD') {
+        msg.data.forEach(p => drawLineSegment(p.x1, p.y1, p.x2, p.y2, p.color, p.width, false));
+      } else if (msg.type === 'DRAW_LINE') {
+        const p = msg.payload;
+        drawLineSegment(p.x1, p.y1, p.x2, p.y2, p.color, p.width, false);
+      } else if (msg.type === 'CLEAR_BOARD') {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } else if (msg.type === 'USERS_COUNT') {
+        onlineCount.textContent = msg.count;
+      }
+    };
+
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      const { x, y } = getCoords(e);
+      lastX = x;
+      lastY = y;
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const { x, y } = getCoords(e);
+      const color = isEraser ? '#ffffff' : currentColor;
+      const width = isEraser ? currentWidth * 4 : currentWidth;
+
+      drawLineSegment(lastX, lastY, x, y, color, width, true);
+      lastX = x;
+      lastY = y;
+    }
+
+    function stopDraw() {
+      isDrawing = false;
+    }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', stopDraw);
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
+    window.addEventListener('touchend', stopDraw);
+
+    colorBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        colorBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentColor = btn.dataset.color;
+        isEraser = false;
+        eraserBtn.classList.remove('active', 'btn-dark');
+        eraserBtn.classList.add('btn-outline-secondary');
+      });
+    });
+
+    lineWidthInput.addEventListener('input', (e) => {
+      currentWidth = e.target.value;
+      widthVal.textContent = `${currentWidth}px`;
+    });
+
+    eraserBtn.addEventListener('click', () => {
+      isEraser = !isEraser;
+      if (isEraser) {
+        eraserBtn.classList.add('active', 'btn-dark');
+        eraserBtn.classList.remove('btn-outline-secondary');
+      } else {
+        eraserBtn.classList.remove('active', 'btn-dark');
+        eraserBtn.classList.add('btn-outline-secondary');
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Очистити дошку для всіх користувачів?')) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'CLEAR_BOARD' }));
+        }
+      }
+    });
+  </script>
+</body>
+</html>

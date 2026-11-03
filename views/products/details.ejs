@@ -194,7 +194,6 @@
         <div class="col-lg-6">
           <span class="badge badge-category mb-3"><%= product.category_name || 'Догляд' %></span>
           
-        
           <h1 class="display-5 fw-bold mb-3"><%= product.title %> — Преміальний догляд</h1>
           
           <div class="d-flex align-items-baseline gap-3 mb-3">
@@ -385,21 +384,21 @@
                 <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">1</span>
                 <div>
                   <h3 class="fs-6 fw-bold mb-1">Очищення</h3>
-                  <p class="text-muted small mb-0">Очистіть обличчя м'якою пінкою або гелем перед нанесенням.</p>
+                  <p class="text-muted small mb-0">Очистіть обличчя м'якою пінкою або гелем перед нанесенням[cite: 3].</p>
                 </div>
               </div>
               <div class="d-flex align-items-start gap-3">
                 <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">2</span>
                 <div>
                   <h3 class="fs-6 fw-bold mb-1">Нанесення</h3>
-                  <p class="text-muted small mb-0">Розподіліть невелику кількість масажними лініями обличчя.</p>
+                  <p class="text-muted small mb-0">Розподіліть невелику кількість масажними лініями обличчя[cite: 3].</p>
                 </div>
               </div>
               <div class="d-flex align-items-start gap-3">
                 <span class="badge bg-dark rounded-circle p-2 px-3 fs-6">3</span>
                 <div>
                   <h3 class="fs-6 fw-bold mb-1">Закріплення</h3>
-                  <p class="text-muted small mb-0">Зачекайте 1-2 хвилини до повного поглинання шкірою.</p>
+                  <p class="text-muted small mb-0">Зачекайте 1-2 хвилини до повного поглинання шкірою[cite: 3].</p>
                 </div>
               </div>
             <% } %>
@@ -410,29 +409,71 @@
             <div class="text-center mb-4">
               <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small mb-2">Швидке замовлення</span>
               <h2 class="fs-3 fw-bold">Замовити <%= product.title %></h2>
-              <p class="text-muted small">Залиште свої дані, і наш косметолог-консультант зв'яжеться з вами протягом 15 хвилин.</p>
+              <p class="text-muted small">Залиште свої дані, і наш косметолог-консультант зв'яжеться з вами протягом 15 хвилин[cite: 3].</p>
             </div>
-            <form onsubmit="event.preventDefault(); alert('Дякуємо! Ваше замовлення прийнято в обробку.');">
+
+            <form id="quickOrderLandingForm">
+              <input type="hidden" name="productId" value="<%= product.id %>">
+              <input type="hidden" name="productTitle" value="<%= product.title %>">
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label small fw-semibold">Ваше ім'я</label>
-                  <input type="text" class="form-control py-2" placeholder="Валерія" required>
+                  <input type="text" name="name" class="form-control py-2" placeholder="Ольга" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small fw-semibold">Номер телефону</label>
-                  <input type="tel" class="form-control py-2" placeholder="+38 (099) 000-00-00" required>
+                  <input type="tel" name="phone" class="form-control py-2" placeholder="+38 (099) 000-00-00" required>
                 </div>
                 <div class="col-12">
                   <label class="form-label small fw-semibold">Місто та відділення пошти</label>
-                  <input type="text" class="form-control py-2" placeholder="Київ, Нова Пошта №..." required>
+                  <input type="text" name="address" class="form-control py-2" placeholder="Київ, відділення №2" required>
                 </div>
                 <div class="col-12 mt-4">
-                  <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-semibold">
+                  <button type="submit" id="submitOrderBtn" class="btn btn-dark w-100 py-3 rounded-pill fw-semibold">
                     Оформити замовлення — <%= product.price %> ₴
                   </button>
                 </div>
               </div>
             </form>
+
+            <script>
+              document.getElementById('quickOrderLandingForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const btn = document.getElementById('submitOrderBtn');
+                const originalText = btn.innerText;
+                btn.disabled = true;
+                btn.innerText = 'Надсилаємо...';
+
+                const formData = {
+                  productId: this.productId.value,
+                  productTitle: this.productTitle.value,
+                  name: this.name.value,
+                  phone: this.phone.value,
+                  address: this.address.value
+                };
+
+                try {
+                  const res = await fetch('/api/orders/quick', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                  });
+
+                  if (res.ok) {
+                    alert('Дякуємо, ' + formData.name + '! Замовлення успішно передано консультанту в Telegram.');
+                    this.reset();
+                  } else {
+                    alert('Помилка при оформленні замовлення. Спробуйте пізніше.');
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert('Помилка підключення до сервера.');
+                } finally {
+                  btn.disabled = false;
+                  btn.innerText = originalText;
+                }
+              });
+            </script>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+const { sendTelegramMessage } = require('../services/telegramService');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -36,12 +37,50 @@ router.post('/products', async (req, res) => {
       [title, description, price, volume_ml, finalImageUrl, category_id || null]
     );
 
+    await sendTelegramMessage(
+      `🌸 <b>The Beauty Space: Додано новий товар!</b>\n` +
+      `📦 <b>Назва:</b> ${title}\n` +
+      `💰 <b>Ціна:</b> ${price} ₴\n` +
+      `🧴 <b>Об'єм:</b> ${volume_ml || 0} мл`
+    );
+
     res.redirect('/');
   } catch (error) {
     console.error(error);
     res.status(500).send('Помилка при додаванні товару');
   }
 });
+
+router.post('/api/orders/quick', async (req, res) => {
+  try {
+    const { productId, productTitle, title, name, phone, address, city } = req.body;
+
+    const finalProduct = productTitle || title || (productId ? `Товар #${productId}` : 'Hydralume Serum');
+    const finalName = name || 'Клієнт';
+    const finalPhone = phone || 'Не вказано';
+    const finalAddress = address || city || 'Не вказано';
+
+    await sendTelegramMessage(
+      `🛒 <b>Нове замовлення в The Beauty Space!</b>\n\n` +
+      `👤 <b>Покупець:</b> ${finalName}\n` +
+      `📞 <b>Телефон:</b> ${finalPhone}\n` +
+      `🛍 <b>Товар:</b> ${finalProduct}\n` +
+      `📍 <b>Доставка:</b> ${finalAddress}\n` +
+      `⏱ <b>Час:</b> ${new Date().toLocaleTimeString('uk-UA')}`
+    );
+
+
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+      return res.status(200).json({ success: true, message: 'Замовлення надіслано в Telegram' });
+    }
+    
+    res.redirect('back');
+  } catch (err) {
+    console.error('Помилка відправки замовлення в Telegram:', err);
+    res.status(500).json({ error: 'Помилка надсилання сповіщення' });
+  }
+});
+
 
 router.get('/products/:id', async (req, res) => {
   try {

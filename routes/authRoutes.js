@@ -7,6 +7,7 @@ router.get(
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
+
 router.get(
   '/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
@@ -35,5 +36,4 @@ router.get('/api/auth/me', (req, res) => {
     message: 'Користувач не авторизований'
   });
 });
-
 module.exports = router;
